@@ -3,11 +3,13 @@ import urllib
 import logging
 import json
 import traceback
+import genanki.genanki as genanki 
+import datetime as dt
 from database import DataStore
-from flask import Response, render_template, request, Flask
+from flask import Response, render_template, request, Flask, send_file
 from bs4 import BeautifulSoup
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='decks')
 
 URL = 'https://www.rlsnet.ru'
 HEADERS = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36'}
@@ -196,22 +198,156 @@ def fetch(data):
     finally:
         return result
 
+def gen_deck(data, name):
+    my_deck = genanki.Deck(
+      2059400112,
+      'DesuDeck')
+    my_model = genanki.Model(
+      1607392318,
+      'DesuModel',
+      css = """
+        table {
+            text-align: left;
+            border-collapse: collapse;
+            border-spacing: 0;
+            border-style: double;
+            border-color: #000;
+        }
+        table td, table th {
+          border: 1px solid black;
+        }
+        table tr:first-child th {
+          border-top: 0;
+        }
+        table tr:last-child td {
+          border-bottom: 0;
+        }
+        table tr td:first-child,
+        table tr th:first-child {
+          border-left: 0;
+        }
+        table tr td:last-child,
+        table tr th:last-child {
+          border-right: 0;
+        }
+        html {
+        background-image: url("https://i.pinimg.com/originals/52/29/6c/52296cbaa43b9000b916589a726a01bb.png");
+        background-repeat: no-repeat;
+        background-size: 100%;
+        }
+
+        .front {
+        padding: 10px;
+        background-color: #FFFFEF;
+        border-style: double;
+        border-color: #000;
+        }
+        .back {
+        .front
+        }
+
+        .text {
+        font-family: arial;
+        font-size: 14pt;
+        color: black;
+        text-align: center;
+        }
+        .front .text {
+        font-size: 24pt;
+        }
+        .back .text {
+        font-size: 12pt;
+        }
+        h1, h2, h3, h4, h5, h6{
+          margin-top:30px;
+          margin-bottom:5px;
+        }
+      """,
+      fields=[
+        {'name': 'Trade name'},
+        {'name': 'Agent name'},
+        {'name': 'Action'},
+        {'name': 'Description'},
+      ],
+      templates=[
+        {
+          'name': '{{Trade name}}',
+          'qfmt': '''
+<div class='front'> 
+	<div class='text'> {{Trade name}}</ div> 
+</ div>
+            ''',
+          'afmt': '''
+{{FrontSide}}
+<hr id="answer">
+	<div class='back'>
+		<div class='text'>
+		<p>
+			<h5>Действующее вещество</h5>
+			{{Agent name}}
+		</p>
+		<p>
+			<h5>Фармакологическое действие</h5>
+			{{Action}}
+		</p>
+		<p>
+			<h5>Краткое описание</h5>
+			{{Description}}
+		</p>
+                </div>
+            </div>
+          '''
+        },
+      ])
+    for drug in data:
+        log.debug("Generate note for {}.".format(drug['td_name']))
+        if isinstance(drug['description'], (list,)):
+            html = '<table><caption><em>Табл. 1. Состав.</em></caption><tbody>'
+            for row in drug['description']:
+                if len(row) < 2:
+                    row.append('')
+                html += '<tr><td>{}</td><td>{}</td></tr>'.format(row[0], row[1])
+            html += '</tbody></table>'
+            drug['description'] = html
+        note = genanki.Note(
+          model=my_model,
+          fields=[
+              drug['td_name'],
+              drug['name'],
+              drug['pharm_action'],
+              drug['description'],
+          ]
+        )
+        my_deck.add_note(note)
+    genanki.Package(my_deck).write_to_file(name)
+
+
 
 @app.route('/get/', methods=['GET'])
-def get_name():
+def get():
     search_query = request.args.get('search', default="", type=str)
+    show_json = request.args.get('show_json', default=False, type=bool)
     names = search_query.split('\n')
     data = list()
     for name in names:
         if name != '':
-            log.info(name)
             data.append(fetch(search(name)))
-    response = app.response_class(
-        response=json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4),
-        status=200,
-        mimetype='application/json; charset=utf-8'
-    )
-    return response
+    if show_json:
+        response = app.response_class(
+            response=json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4),
+            status=200,
+            mimetype='application/json; charset=utf-8'
+        )
+        return response
+    else:
+        date = int(dt.datetime.now().strftime("%s"))
+        path = 'decks/{}.apkg'.format(date)
+        gen_deck(data, name=path)
+        return send_file(path, as_attachment=True)
+
+@app.route('/decks/<path:filename>', methods=['GET', 'POST'])
+def download(filename):
+    return send_file('decks/output.apkg', as_attachment=True)
 
 @app.route('/')
 def index():
