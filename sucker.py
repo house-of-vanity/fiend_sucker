@@ -29,6 +29,18 @@ COMMIT;
 '''
 SQL_DB_FILE = 'data.sqlite'
 
+CSS = None
+with open('styles/style.css') as css:
+    CSS = css.read()
+QFMT = None
+with open('styles/qfmt.html') as qfmt:
+    QFMT = qfmt.read()
+AFMT = None
+with open('styles/afmt.html') as afmt:
+    AFMT = afmt.read()
+
+
+
 db = DataStore(SQL_DB_FILE, SQL_SCHEME, is_scheme_file=False)
 
 logging.basicConfig(
@@ -131,6 +143,7 @@ def fetch(data):
         result['td_name'] = data['td_name']
         result['is_cached'] = True
         result['date'] = data['date']
+        result['url'] = data['url']
         return result
     req = requests.get(
         data['url'],
@@ -152,6 +165,7 @@ def fetch(data):
         result['td_name'] = data['td_name'].capitalize()
         result['is_cached'] = False
         result['date'] = None
+        result['url'] = data['url']
         db.add_drug(
                 url=data['url'],
                 name=data['name'],
@@ -189,6 +203,7 @@ def fetch(data):
         result['td_name'] = data['td_name'].capitalize()
         result['is_cached'] = False
         result['date'] = None
+        result['url'] = data['tn_url']
         result['Trace'] = {
             'Exception': str(e),
             'Traceback': ''.join(traceback.format_tb(e.__traceback__)),
@@ -198,127 +213,52 @@ def fetch(data):
     finally:
         return result
 
-def gen_deck(data, name):
+def gen_deck(data, name, css=CSS, qfmt=QFMT, afmt=AFMT):
     my_deck = genanki.Deck(
       2059400112,
       'DesuDeck')
     my_model = genanki.Model(
       1607392318,
       'DesuModel',
-      css = """
-        table {
-            text-align: left;
-            border-collapse: collapse;
-            border-spacing: 0;
-            border-style: double;
-            border-color: #000;
-        }
-        table td, table th {
-          border: 1px solid black;
-        }
-        table tr:first-child th {
-          border-top: 0;
-        }
-        table tr:last-child td {
-          border-bottom: 0;
-        }
-        table tr td:first-child,
-        table tr th:first-child {
-          border-left: 0;
-        }
-        table tr td:last-child,
-        table tr th:last-child {
-          border-right: 0;
-        }
-        html {
-        background-image: url("https://i.pinimg.com/originals/52/29/6c/52296cbaa43b9000b916589a726a01bb.png");
-        background-repeat: no-repeat;
-        background-size: 100%;
-        }
-
-        .front {
-        padding: 10px;
-        background-color: #FFFFEF;
-        border-style: double;
-        border-color: #000;
-        }
-        .back {
-        .front
-        }
-
-        .text {
-        font-family: arial;
-        font-size: 14pt;
-        color: black;
-        text-align: center;
-        }
-        .front .text {
-        font-size: 24pt;
-        }
-        .back .text {
-        font-size: 12pt;
-        }
-        h1, h2, h3, h4, h5, h6{
-          margin-top:30px;
-          margin-bottom:5px;
-        }
-      """,
+      css = css,
       fields=[
         {'name': 'Trade name'},
         {'name': 'Agent name'},
         {'name': 'Action'},
         {'name': 'Description'},
+        {'name': 'URL'},
       ],
       templates=[
         {
-          'name': '{{Trade name}}',
-          'qfmt': '''
-<div class='front'> 
-	<div class='text'> {{Trade name}}</ div> 
-</ div>
-            ''',
-          'afmt': '''
-{{FrontSide}}
-<hr id="answer">
-	<div class='back'>
-		<div class='text'>
-		<p>
-			<h5>Действующее вещество</h5>
-			{{Agent name}}
-		</p>
-		<p>
-			<h5>Фармакологическое действие</h5>
-			{{Action}}
-		</p>
-		<p>
-			<h5>Краткое описание</h5>
-			{{Description}}
-		</p>
-                </div>
-            </div>
-          '''
+          'name': 'Drug card',
+          'qfmt': qfmt,
+          'afmt': afmt,
         },
       ])
     for drug in data:
-        log.debug("Generate note for {}.".format(drug['td_name']))
-        if isinstance(drug['description'], (list,)):
-            html = '<table><caption><em>Табл. 1. Состав.</em></caption><tbody>'
-            for row in drug['description']:
-                if len(row) < 2:
-                    row.append('')
-                html += '<tr><td>{}</td><td>{}</td></tr>'.format(row[0], row[1])
-            html += '</tbody></table>'
-            drug['description'] = html
-        note = genanki.Note(
-          model=my_model,
-          fields=[
-              drug['td_name'],
-              drug['name'],
-              drug['pharm_action'],
-              drug['description'],
-          ]
-        )
-        my_deck.add_note(note)
+        log.debug("Generate note for {}.".format(drug))
+        try:
+            if isinstance(drug['description'], (list,)):
+                html = '<table><caption><em>Табл. 1. Состав.</em></caption><tbody>'
+                for row in drug['description']:
+                    if len(row) < 2:
+                        row.append('')
+                    html += '<tr><td>{}</td><td>{}</td></tr>'.format(row[0], row[1])
+                html += '</tbody></table>'
+                drug['description'] = html
+            note = genanki.Note(
+              model=my_model,
+              fields=[
+                  drug['td_name'],
+                  drug['name'],
+                  drug['pharm_action'],
+                  drug['description'],
+                  drug['url'],
+              ]
+            )
+            my_deck.add_note(note)
+        except Exception as e:
+            log.warning("Skip some drug.{} - {}".format(drug['td_name'], e))
     genanki.Package(my_deck).write_to_file(name)
 
 
@@ -326,6 +266,9 @@ def gen_deck(data, name):
 @app.route('/get/', methods=['GET'])
 def get():
     search_query = request.args.get('search', default="", type=str)
+    css = request.args.get('css', default=CSS, type=str)
+    qfmt = request.args.get('qfmt', default=QFMT, type=str)
+    afmt = request.args.get('afmt', default=AFMT, type=str)
     show_json = request.args.get('show_json', default=False, type=bool)
     names = search_query.split('\n')
     data = list()
@@ -342,16 +285,17 @@ def get():
     else:
         date = int(dt.datetime.now().strftime("%s"))
         path = 'decks/{}.apkg'.format(date)
-        gen_deck(data, name=path)
+        gen_deck(data, name=path, css=css, afmt=afmt, qfmt=qfmt)
         return send_file(path, as_attachment=True)
-
-@app.route('/decks/<path:filename>', methods=['GET', 'POST'])
-def download(filename):
-    return send_file('decks/output.apkg', as_attachment=True)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template(
+            'index.html',
+            css=CSS,
+            qfmt=QFMT,
+            afmt=AFMT
+            )
 
 def main():
     app.run(host='0.0.0.0', port=5000)

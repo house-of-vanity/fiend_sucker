@@ -1,0 +1,53 @@
+table {
+     text-align: left;
+     border-collapse: collapse;
+     border-spacing: 0;
+     border-style: double;
+     border-color: #000;
+}
+ table td, table th {
+     border: 1px solid black;
+}
+ table tr:first-child th {
+     border-top: 0;
+}
+ table tr:last-child td {
+     border-bottom: 0;
+}
+ table tr td:first-child, table tr th:first-child {
+     border-left: 0;
+}
+ table tr td:last-child, table tr th:last-child {
+     border-right: 0;
+}
+ html {
+     background-image: url("https://i.pinimg.com/originals/52/29/6c/52296cbaa43b9000b916589a726a01bb.png");
+     background-repeat: no-repeat;
+     background-size: 100%;
+}
+ .front {
+     padding: 10px;
+     background-color: #FFFFEF;
+     border-style: double;
+     border-color: #000;
+     opacity: 0.9;
+}
+ .back {
+     .front 
+}
+ .text {
+     font-family: arial;
+     font-size: 14pt;
+     color: black;
+     text-align: center;
+}
+ .front .text {
+     font-size: 24pt;
+}
+ .back .text {
+     font-size: 12pt;
+}
+ h1, h2, h3, h4, h5, h6{
+     margin-top:30px;
+     margin-bottom:5px;
+}
