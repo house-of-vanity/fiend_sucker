@@ -47,10 +47,12 @@ logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger('fiend_sucker')
+logging.getLogger("werkzeug").setLevel(logging.WARNING)
+
+def urlize(line):
+    return 'https://www.{}'.format(line[line.find('rlsnet'):])
 
 def search(word):
-    def urlize(line):
-        return 'https://www.{}'.format(line[line.find('rlsnet'):])
 
     # look in cache for minimizing fetching rlsnet.
     in_cache = db.find_drug(word.capitalize())
@@ -80,6 +82,16 @@ def search(word):
 
     # parse page
     html = BeautifulSoup(html, 'html.parser')
+    # look for drug replacement banner.
+    drug_replacement =  html.find("a", {"class": 'drug__replacement--link'})
+    if drug_replacement != None:
+        log.info("Found replacement for {} - {} ({})".format(
+            word.capitalize(),
+            drug_replacement.text.capitalize(),
+            urlize(drug_replacement['href'])))
+        url = urlize(drug_replacement['href'])
+        html = curl(url)
+        html = BeautifulSoup(html, 'html.parser')
     # search in case of trade name page. (tn_index_id)
     search_result = html.find("a", {"class": 'drug__link--article'})
     try:
@@ -91,6 +103,7 @@ def search(word):
                 'url': url,
                 'td_name': word,
                 'cached': False,
+                'tn_url': req.url
             }
     except:
         pass
@@ -131,8 +144,32 @@ def search(word):
         }
     }
 
+def curl(url, headers=HEADERS, encoding="cp1251"):
+    log.debug("CURLing {}".format(url))
+    req = requests.get(
+        url,
+        headers = HEADERS
+        )
+    req.encoding = "cp1251"
+    return req.text
+
+def look_replacement(html):
+    drug_replacement =  html.find("a", {"class": 'drug__replacement--link'})
+    if drug_replacement != None:
+        log.info("Found replacement - {} ({})".format(
+            drug_replacement.text.capitalize(),
+            urlize(drug_replacement['href'])))
+        url = urlize(drug_replacement['href'])
+        html = curl(url)
+        html = BeautifulSoup(html, 'html.parser')
+    else:
+        pass
+    return html
+
+
 def fetch(data):
     result = dict()
+    log.debug(data)
     if data['name'] == None:
         return data
     if data['cached'] == True:
@@ -145,17 +182,14 @@ def fetch(data):
         result['date'] = data['date']
         result['url'] = data['url']
         return result
-    req = requests.get(
-        data['url'],
-        headers = HEADERS
-        )
-    req.encoding = "cp1251"
-    html = req.text
+    html = curl(data['url'])
 
     # parse page
     html = BeautifulSoup(html, 'html.parser')
+    html = look_replacement(html)
     try:
         pharm_action = html.find("span", {"class": 'pharm_action'})
+        log.debug(pharm_action)
         description = pharm_action.find_next_sibling("p", {"class": 'OPIS_DVFLD_BEG'})
         log.debug("{} pharm action text found. {} chars lenght.".format(data['name'], len(pharm_action.text)))
         log.debug("{} description text found. {} chars lenght.".format(data['name'], len(description.text)))
@@ -174,15 +208,11 @@ def fetch(data):
                 td_name=data['td_name'],
         )
     except AttributeError as e:
-        req = requests.get(
-            data['tn_url'],
-            headers = HEADERS
-            )
-        req.encoding = "cp1251"
-        html = req.text
+        html = curl(data['tn_url'])
 
         # parse page
         html = BeautifulSoup(html, 'html.parser')
+        html = look_replacement(html)
         pharm_action = html.find("span", {"class": 'pharm_action'})
         # parse content of drug
         table = html.find("table", {"class": 'sostav_table'})
@@ -210,6 +240,8 @@ def fetch(data):
             'Comment': "Can't parse some fields. Minimal info is available.",
         }
 
+    except Exception as e:
+        log.error("Can't fetch data - {}".format(e))
     finally:
         return result
 
