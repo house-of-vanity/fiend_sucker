@@ -47,7 +47,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger('fiend_sucker')
-logging.getLogger("werkzeug").setLevel(logging.WARNING)
+logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
 
 def urlize(line):
     return 'https://www.{}'.format(line[line.find('rlsnet'):])
@@ -169,7 +169,6 @@ def look_replacement(html):
 
 def fetch(data):
     result = dict()
-    log.debug(data)
     if data['name'] == None:
         return data
     if data['cached'] == True:
@@ -189,7 +188,6 @@ def fetch(data):
     html = look_replacement(html)
     try:
         pharm_action = html.find("span", {"class": 'pharm_action'})
-        log.debug(pharm_action)
         description = pharm_action.find_next_sibling("p", {"class": 'OPIS_DVFLD_BEG'})
         log.debug("{} pharm action text found. {} chars lenght.".format(data['name'], len(pharm_action.text)))
         log.debug("{} description text found. {} chars lenght.".format(data['name'], len(description.text)))
@@ -268,7 +266,7 @@ def gen_deck(data, name, css=CSS, qfmt=QFMT, afmt=AFMT):
         },
       ])
     for drug in data:
-        log.debug("Generate note for {}.".format(drug))
+        log.debug("Generate note for {}.".format(drug['name']))
         try:
             if isinstance(drug['description'], (list,)):
                 html = '<table><caption><em>Табл. 1. Состав.</em></caption><tbody>'

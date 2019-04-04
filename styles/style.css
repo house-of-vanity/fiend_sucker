@@ -1,4 +1,4 @@
-table {
+ table {
      text-align: left;
      border-collapse: collapse;
      border-spacing: 0;
@@ -33,7 +33,11 @@ table {
      opacity: 0.9;
 }
  .back {
-     .front 
+     padding: 10px;
+     background-color: #FFFFEF;
+     border-style: double;
+     border-color: #000;
+     opacity: 0.9;
 }
  .text {
      font-family: arial;
