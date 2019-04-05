@@ -217,19 +217,25 @@ def fetch(data):
         pharm_action = html.find("span", {"class": 'pharm_action'})
         # parse content of drug
         table = html.find("table", {"class": 'sostav_table'})
-        table_data = []
-        rows = table.find_all('tr')
-        for row in rows:
-            cols = row.find_all('td')
-            cols = [ele.text.strip() for ele in cols]
-            table_data.append([ele for ele in cols if ele])
-        log.debug("{} pharm action text found. {} chars lenght.".format(
-            data['td_name'],
-            len(pharm_action.text)
+        if table != None:
+            table_data = []
+            rows = table.find_all('tr')
+            for row in rows:
+                cols = row.find_all('td')
+                cols = [ele.text.strip() for ele in cols]
+                table_data.append([ele for ele in cols if ele])
+        else:
+            table_data = None
+        if pharm_action != None:
+            log.debug("{} pharm action text found. {} chars lenght.".format(
+                data['td_name'],
+                len(pharm_action.text)
+                )
             )
-        )
+            result['pharm_action'] = pharm_action.text
+        else:
+            result['pharm_action'] = None
         result['name'] = data['td_name'].capitalize()
-        result['pharm_action'] = pharm_action.text
         result['description'] = table_data
         result['td_name'] = data['td_name'].capitalize()
         result['is_cached'] = False
