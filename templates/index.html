@@ -3,20 +3,73 @@
  <head>
   <meta charset="utf-8">
   <title>Fiend Sucker Tool</title>
+  <style>
+iframe {
+  bottom: 0;
+  position: relative;
+  width: 90%;
+  height: 50vh;
+}
+  </style>
  </head>
  <body>
 
-  <form action="get/" method="get">
-    <p><b>Input drug names. One per line.</b></p>
-    <p><textarea rows="10" cols="45" name="search"></textarea></p>
+  <form action="get/" method="get" target="_blank">
+	  <label><p><b>Deck name</b></p><input type='text' name='deck_name' value='DesuDeck'></label>
+	  <label><p><b>Input drug names. One per line</b></p>
+		  <p><textarea rows="10" cols="45" name="search"></textarea></p></label>
     <label>Show JSON instead of downloading a deck.<input type="checkbox" name="show_json"/></label>
     <p><input type="submit" value="Submit"></p>
     <hr>
-    <label>Cascading style sheets (CSS table)<p><textarea rows="10" cols="45" name="css">{{ css }}</textarea></p></label>
-    <label>Question template<p><textarea rows="10" cols="45" name="qfmt">{{ qfmt }}</textarea></p></label>
-    <label>Answer template<p><textarea rows="10" cols="45" name="afmt">{{ afmt }}</textarea></p></label>
+    <table cellpadding="5px" cellspacing="5px">
+	  <tr>
+	    <td>
+    <label>CSS<p><textarea rows="10" cols="100" id="css" name="css">{{ css }}</textarea></p></label>
+    <label>Question template<p><textarea rows="6" cols="100" id="qfmt" name="qfmt">{{ qfmt }}</textarea></p></label>
+    <label>Answer template<p><textarea rows="6" cols="100" id="afmt" name="afmt">{{ afmt }}</textarea></p></label>
+      	    </td>
+	    <td >
+		<iframe id="code"></iframe>
+	    </td>
+    	  </tr>
 
   </form>
-
  </body>
+  <script>
+function compile() {
+  var a_html = document.getElementById("afmt");
+  var q_html = document.getElementById("qfmt");
+  var css = document.getElementById("css");
+  var code = document.getElementById("code").contentWindow.document;
+
+  document.body.onkeyup = function() {
+    code.open();
+    code.writeln(
+      q_html.value +
+      a_html.value +
+        "<style>" +
+        css.value +
+        "</style>"
+    );
+    code.close();
+  };
+}
+function onload_fill() {
+  var a_html = document.getElementById("afmt");
+  var q_html = document.getElementById("qfmt");
+  var css = document.getElementById("css");
+  var code = document.getElementById("code").contentWindow.document;
+    code.open();
+    code.writeln(
+      q_html.value +
+      a_html.value +
+        "<style>" +
+        css.value +
+        "</style>"
+    );
+    code.close();
+}
+onload_fill();
+compile();
+  </script>
 </html>

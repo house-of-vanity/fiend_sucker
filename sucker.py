@@ -243,12 +243,15 @@ def fetch(data):
     finally:
         return result
 
-def gen_deck(data, name, css=CSS, qfmt=QFMT, afmt=AFMT):
+def gen_deck(data, name='DesuDeck', output='decks/output.apkg', css=CSS, qfmt=QFMT, afmt=AFMT):
+    deck_id = 0
+    for c in name:
+        deck_id += ord(c)
     my_deck = genanki.Deck(
-      2059400112,
-      'DesuDeck')
+      deck_id,
+      name)
     my_model = genanki.Model(
-      1607392318,
+      14881337,
       'DesuModel',
       css = css,
       fields=[
@@ -289,7 +292,7 @@ def gen_deck(data, name, css=CSS, qfmt=QFMT, afmt=AFMT):
             my_deck.add_note(note)
         except Exception as e:
             log.warning("Skip some drug.{} - {}".format(drug['td_name'], e))
-    genanki.Package(my_deck).write_to_file(name)
+    genanki.Package(my_deck).write_to_file(output)
 
 
 
@@ -299,6 +302,7 @@ def get():
     css = request.args.get('css', default=CSS, type=str)
     qfmt = request.args.get('qfmt', default=QFMT, type=str)
     afmt = request.args.get('afmt', default=AFMT, type=str)
+    deck_name = request.args.get('deck_name', default='DesuDeck', type=str)
     show_json = request.args.get('show_json', default=False, type=bool)
     names = search_query.split('\n')
     data = list()
@@ -315,7 +319,7 @@ def get():
     else:
         date = int(dt.datetime.now().strftime("%s"))
         path = 'decks/{}.apkg'.format(date)
-        gen_deck(data, name=path, css=css, afmt=afmt, qfmt=qfmt)
+        gen_deck(data, name=deck_name, output=path, css=css, afmt=afmt, qfmt=qfmt)
         return send_file(path, as_attachment=True)
 
 @app.route('/')
