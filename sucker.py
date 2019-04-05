@@ -121,6 +121,7 @@ def search(word):
                 continue
             url = urlize(first_line.a['href'])
             log.info("Found '{}' - {}".format(first_line.a.text, url))
+            tn_url = url
             return {
                 'name': first_line.a.text,
                 'url': url,
@@ -189,6 +190,8 @@ def fetch(data):
     try:
         pharm_action = html.find("span", {"class": 'pharm_action'})
         description = pharm_action.find_next_sibling("p", {"class": 'OPIS_DVFLD_BEG'})
+        while len(description.text) <= 30:
+            description = description.find_next_sibling("p")
         log.debug("{} pharm action text found. {} chars lenght.".format(data['name'], len(pharm_action.text)))
         log.debug("{} description text found. {} chars lenght.".format(data['name'], len(description.text)))
         result['name'] = data['name'].capitalize()
@@ -308,7 +311,11 @@ def get():
     data = list()
     for name in names:
         if name != '':
-            data.append(fetch(search(name)))
+            fetched_data = fetch(search(name))
+            if fetched_data != {}:
+                data.append(fetched_data)
+            else:
+                log.error("Drug {} fetch failed!".format(name))
     if show_json:
         response = app.response_class(
             response=json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4),
