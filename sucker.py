@@ -135,7 +135,7 @@ def search(word):
         'tn_url': None,
         'td_name': word,
         'cached': False,
-        'desc': None,
+        'description': None,
         'pharm_action': None,
         'date': None,
         'TraceRay': {
@@ -278,7 +278,7 @@ def gen_deck(data, name='DesuDeck', output='decks/output.apkg', css=CSS, qfmt=QF
         },
       ])
     for drug in data:
-        log.debug("Generate note for {}.".format(drug['name']))
+        log.debug("Generate note for {}.".format(drug['name'] if drug['name'] != None else drug['td_name']))
         try:
             if isinstance(drug['description'], (list,)):
                 html = '<table><caption><em>Табл. 1. Состав.</em></caption><tbody>'
@@ -291,11 +291,11 @@ def gen_deck(data, name='DesuDeck', output='decks/output.apkg', css=CSS, qfmt=QF
             note = genanki.Note(
               model=my_model,
               fields=[
-                  drug['td_name'],
-                  drug['name'],
-                  drug['pharm_action'],
-                  drug['description'],
-                  drug['url'],
+                  drug['td_name'] if drug['td_name'] != None else 'N/D',
+                  drug['name'] if drug['name'] != None else 'N/D',
+                  drug['pharm_action'] if drug['pharm_action'] != None else 'N/D',
+                  drug['description'] if drug['description'] != None else 'N/D',
+                  drug['url'] if drug['url'] != None else 'N/D',
               ]
             )
             my_deck.add_note(note)
