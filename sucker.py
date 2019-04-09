@@ -10,7 +10,7 @@ from flask import Response, render_template, request, Flask, send_file
 from bs4 import BeautifulSoup
 
 app = Flask(__name__, static_folder='decks')
-
+__version__ = '1.0.2'
 URL = 'https://www.rlsnet.ru'
 HEADERS = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36'}
 
@@ -295,7 +295,7 @@ def gen_deck(data, name='DesuDeck', output='decks/output.apkg', css=CSS, qfmt=QF
                   drug['name'] if drug['name'] != None else 'N/D',
                   drug['pharm_action'] if drug['pharm_action'] != None else 'N/D',
                   drug['description'] if drug['description'] != None else 'N/D',
-                  drug['url'] if drug['url'] != None else 'N/D',
+                  drug['url'] if drug['url'] != None else URL,
               ]
             )
             my_deck.add_note(note)
@@ -341,7 +341,8 @@ def index():
             'index.html',
             css=CSS,
             qfmt=QFMT,
-            afmt=AFMT
+            afmt=AFMT,
+            version=__version__,
             )
 
 def main():

@@ -10,10 +10,17 @@ iframe {
   width: 90%;
   height: 50vh;
 }
+.ver {
+  position: absolute;
+  top: 1%;
+  right: 1%;
+}
   </style>
  </head>
  <body>
-
+	 <div class="ver">
+		 Version {{ version }}
+	 </div>
   <form action="get/" method="get" target="_blank">
 	  <label><p><b>Deck name</b></p><input type='text' name='deck_name' value='DesuDeck'></label>
 	  <label><p><b>Input drug names. One per line</b></p>
