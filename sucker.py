@@ -3,6 +3,7 @@ import urllib
 import logging
 import json
 import traceback
+import os
 import genanki.genanki as genanki 
 import datetime as dt
 from database import DataStore
@@ -254,6 +255,11 @@ def fetch(data):
 
 def gen_deck(data, name='DesuDeck', output='decks/output.apkg', css=CSS, qfmt=QFMT, afmt=AFMT):
     deck_id = 0
+    try:
+        os.makedirs('decks/')
+    except FileExistsError:
+        pass
+
     for c in name:
         deck_id += ord(c)
     my_deck = genanki.Deck(
